@@ -300,37 +300,95 @@ document.addEventListener('alpine:init', () => {
       this.submitted[idx] = true;
     },
 
+    // Grade a user answer against a specific verse, returning feedback object
+    gradeVerseHardRow(ua, v) {
+      const refCorrect = normalizeText(ua.ref || '') === normalizeText(v.reference);
+      const userText = (ua.text || '').trim();
+      const expectedWords = wordsOf(v.text);
+      const userWords = wordsOf(userText);
+      const maxLen = Math.max(expectedWords.length, userWords.length);
+      const wordFeedback = [];
+      let textCorrect = true;
+      let correctWordCount = 0;
+
+      for (let j = 0; j < maxLen; j++) {
+        const expected = expectedWords[j] || '';
+        const got = userWords[j] || '';
+        const correct = normalizeText(got) === normalizeText(expected);
+        if (!correct) textCorrect = false;
+        else correctWordCount++;
+        wordFeedback.push({ word: expected, correct, got, expected });
+      }
+
+      return { ref: refCorrect, text: textCorrect, wordFeedback, correctWordCount, maxLen };
+    },
+
     submitAllVersesHard() {
-      const results = [];
+      const results = Array(12).fill(null);
       let earned = 0;
+      const matched = new Set(); // track which VERSES indices are claimed
       const wrong = [];
 
-      VERSES.forEach((v, i) => {
-        const ua = this.hardAnswers[i] || {};
-        const refCorrect = normalizeText(ua.ref || '') === normalizeText(v.reference);
+      // For each user row, find the best matching verse (by reference first, then text similarity)
+      const userRows = this.hardAnswers.map((ua, i) => ({ ua, i }));
 
-        const userText = (ua.text || '').trim();
-        const expectedWords = wordsOf(v.text);
-        const userWords = wordsOf(userText);
-        const maxLen = Math.max(expectedWords.length, userWords.length);
-        const wordFeedback = [];
-        let textCorrect = true;
-
-        for (let j = 0; j < maxLen; j++) {
-          const expected = expectedWords[j] || '';
-          const got = userWords[j] || '';
-          const correct = normalizeText(got) === normalizeText(expected);
-          if (!correct) textCorrect = false;
-          wordFeedback.push({ word: expected, correct, got, expected });
+      // Pass 1: match rows where reference is correct
+      for (const row of userRows) {
+        let bestIdx = -1;
+        let bestScore = -1;
+        for (let vi = 0; vi < VERSES.length; vi++) {
+          if (matched.has(vi)) continue;
+          const grade = this.gradeVerseHardRow(row.ua, VERSES[vi]);
+          if (grade.ref) {
+            const score = grade.correctWordCount;
+            if (score > bestScore) {
+              bestScore = score;
+              bestIdx = vi;
+            }
+          }
         }
-
-        const pass = refCorrect && textCorrect;
-        if (pass) earned++;
-        results.push({ ref: refCorrect, text: textCorrect, wordFeedback });
-        if (!pass) {
-          wrong.push({ id: v.id, reference: v.reference, text: v.text, mode: 'hard' });
+        if (bestIdx !== -1) {
+          matched.add(bestIdx);
+          const grade = this.gradeVerseHardRow(row.ua, VERSES[bestIdx]);
+          results[row.i] = { ...grade, matchedVerse: VERSES[bestIdx] };
         }
-      });
+      }
+
+      // Pass 2: for unmatched rows, match by best text similarity
+      for (const row of userRows) {
+        if (results[row.i]) continue;
+        let bestIdx = -1;
+        let bestScore = -1;
+        for (let vi = 0; vi < VERSES.length; vi++) {
+          if (matched.has(vi)) continue;
+          const grade = this.gradeVerseHardRow(row.ua, VERSES[vi]);
+          const score = grade.correctWordCount;
+          if (score > bestScore) {
+            bestScore = score;
+            bestIdx = vi;
+          }
+        }
+        if (bestIdx !== -1) {
+          matched.add(bestIdx);
+          const grade = this.gradeVerseHardRow(row.ua, VERSES[bestIdx]);
+          results[row.i] = { ...grade, matchedVerse: VERSES[bestIdx] };
+        } else {
+          // No verses left — grade against first unmatched
+          const remaining = VERSES.find((_, vi) => !matched.has(vi));
+          const grade = this.gradeVerseHardRow(row.ua, remaining || VERSES[0]);
+          results[row.i] = { ...grade, matchedVerse: remaining || VERSES[0] };
+        }
+      }
+
+      // Tally scores
+      for (let i = 0; i < 12; i++) {
+        const r = results[i];
+        if (r.ref && r.text) {
+          earned++;
+        } else {
+          wrong.push({ id: r.matchedVerse.id, reference: r.matchedVerse.reference, text: r.matchedVerse.text, mode: 'hard' });
+        }
+      }
 
       this.hardFeedback = results;
       this.hardSubmitted = true;

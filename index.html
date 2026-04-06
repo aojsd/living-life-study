@@ -235,7 +235,7 @@
 
         <template x-for="(v, i) in currentQuestions" :key="i">
           <article class="question-card hard-card">
-            <h4 x-text="'Verse ' + (i + 1)"></h4>
+            <h4 x-text="'Verse ' + (i + 1) + (hardFeedback && hardFeedback[i].matchedVerse ? ' — matched: ' + hardFeedback[i].matchedVerse.reference : '')"></h4>
             <div class="hard-verse-row">
               <div class="hard-ref" :class="hardFeedback ? (hardFeedback[i].ref ? 'part-correct' : 'part-incorrect') : ''">
                 <label>Reference:</label>
@@ -246,7 +246,7 @@
                   placeholder="e.g. John 3:16"
                 >
                 <template x-if="hardFeedback && !hardFeedback[i].ref">
-                  <small class="correction" x-text="'Answer: ' + v.reference"></small>
+                  <small class="correction" x-text="'Answer: ' + hardFeedback[i].matchedVerse.reference"></small>
                 </template>
               </div>
               <div class="hard-text" :class="hardFeedback ? (hardFeedback[i].text ? 'part-correct' : 'part-incorrect') : ''">
