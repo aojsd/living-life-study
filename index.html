@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Living Life Study</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container" x-data="quiz">
+
+    <!-- Main Menu -->
+    <template x-if="screen === 'menu'">
+      <div class="menu-screen">
+        <h1>Living Life Study</h1>
+        <p class="subtitle">Practice test for fill-in-the-blank questions, true/false, and Bible memory verses.</p>
+        <div class="menu-grid">
+          <article class="menu-card" @click="startSection('fitb')">
+            <h3>Fill in the Blank</h3>
+            <p>11 questions with multiple parts</p>
+            <small>55 points</small>
+          </article>
+          <article class="menu-card" @click="startSection('tf')">
+            <h3>True or False</h3>
+            <p>106 statements</p>
+            <small>106 points</small>
+          </article>
+          <article class="menu-card" @click="startSection('verses')">
+            <h3>Memory Verses</h3>
+            <p>12 verses to recall from reference</p>
+            <small>12 points</small>
+          </article>
+          <article class="menu-card menu-card-full" @click="startSection('full')">
+            <h3>Full Test</h3>
+            <p>All sections in order</p>
+            <small>173 points</small>
+          </article>
+        </div>
+      </div>
+    </template>
+
+    <!-- Quiz Screen -->
+    <template x-if="screen === 'quiz'">
+      <div class="quiz-screen" @keydown.enter.window="if($event.target.tagName !== 'TEXTAREA' && !(currentSectionType === 'tf' && !submitted[currentIndex])) handleSubmitOrNext()">
+        <header class="quiz-header">
+          <div class="quiz-header-left">
+            <span class="section-badge" x-text="currentSectionLabel()"></span>
+            <span class="progress-text" x-text="'Question ' + (currentIndex + 1) + ' of ' + currentQuestions.length"></span>
+          </div>
+          <button class="outline secondary btn-sm" @click="confirmQuit()">Quit</button>
+        </header>
+
+        <!-- Progress bar -->
+        <progress :value="currentIndex + 1" :max="currentQuestions.length"></progress>
+
+        <!-- Fill in the Blank -->
+        <template x-if="currentSectionType === 'fitb'">
+          <article class="question-card">
+            <h3 x-text="'Q' + (currentIndex + 1) + '. ' + currentQ().question"></h3>
+            <p class="points-label" x-text="currentQ().points + ' points'"></p>
+            <template x-for="(part, pi) in currentQ().parts" :key="pi">
+              <div class="part-row" :class="partFeedbackClass(pi)">
+                <label x-text="part.label"></label>
+                <input type="text"
+                  :value="answers[currentIndex]?.[pi] || ''"
+                  @input="answers[currentIndex] = answers[currentIndex] || []; answers[currentIndex][pi] = $event.target.value"
+                  :disabled="submitted[currentIndex]"
+                  :placeholder="submitted[currentIndex] ? '' : 'Your answer...'"
+                >
+                <template x-if="submitted[currentIndex] && feedback[currentIndex]?.[pi] === false">
+                  <small class="correction" x-text="'Answer: ' + part.answer"></small>
+                </template>
+              </div>
+            </template>
+            <div class="question-actions">
+              <button @click="submitAnswer()" x-show="!submitted[currentIndex]">Submit</button>
+              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
+                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
+              </button>
+            </div>
+          </article>
+        </template>
+
+        <!-- True or False -->
+        <template x-if="currentSectionType === 'tf'">
+          <article class="question-card">
+            <h3 x-text="'Q' + (currentIndex + 1) + '.'"></h3>
+            <p class="tf-statement" x-text="currentQ().statement"></p>
+            <div class="tf-buttons" x-show="!submitted[currentIndex]">
+              <button class="outline" @click="answers[currentIndex] = true; submitAnswer()">True</button>
+              <button class="outline" @click="answers[currentIndex] = false; submitAnswer()">False</button>
+            </div>
+            <template x-if="submitted[currentIndex]">
+              <div class="tf-result" :class="feedback[currentIndex] ? 'correct' : 'incorrect'">
+                <span x-text="feedback[currentIndex] ? 'Correct!' : 'Incorrect — Answer: ' + (currentQ().answer ? 'True' : 'False')"></span>
+              </div>
+            </template>
+            <div class="question-actions">
+              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
+                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
+              </button>
+            </div>
+          </article>
+        </template>
+
+        <!-- Verses -->
+        <template x-if="currentSectionType === 'verses'">
+          <article class="question-card">
+            <h3 x-text="'Verse ' + (currentIndex + 1)"></h3>
+            <p class="verse-reference" x-text="currentQ().reference"></p>
+
+            <!-- Hint display -->
+            <template x-if="verseHints[currentIndex] && verseHints[currentIndex].length > 0 && !submitted[currentIndex]">
+              <div class="verse-hints">
+                <template x-for="(hw, wi) in verseHints[currentIndex]" :key="wi">
+                  <span :class="hw.revealed ? 'hint-word revealed' : 'hint-word blank'" x-text="hw.revealed ? hw.word : '____'"></span>
+                </template>
+              </div>
+            </template>
+
+            <textarea
+              :value="answers[currentIndex] || ''"
+              @input="answers[currentIndex] = $event.target.value"
+              :disabled="submitted[currentIndex]"
+              rows="4"
+              placeholder="Type the full verse..."
+            ></textarea>
+
+            <!-- Word-by-word feedback after submit -->
+            <template x-if="submitted[currentIndex]">
+              <div class="verse-feedback">
+                <template x-for="(w, wi) in verseFeedback[currentIndex]" :key="wi">
+                  <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
+                    x-text="w.correct ? w.word : w.expected"
+                    :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+                </template>
+              </div>
+            </template>
+
+            <div class="question-actions">
+              <button @click="submitAnswer()" x-show="!submitted[currentIndex]">Submit</button>
+              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
+                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
+              </button>
+            </div>
+          </article>
+        </template>
+      </div>
+    </template>
+
+    <!-- Results Screen -->
+    <template x-if="screen === 'results'">
+      <div class="results-screen">
+        <h1>Results</h1>
+
+        <template x-for="section in resultSections" :key="section.type">
+          <article class="results-section">
+            <header>
+              <h3 x-text="section.label"></h3>
+              <span class="score-badge" x-text="section.earned + ' / ' + section.total"></span>
+            </header>
+
+            <!-- Wrong answers list -->
+            <template x-if="section.wrong.length > 0">
+              <div class="wrong-list">
+                <h4>Incorrect Answers:</h4>
+                <template x-for="item in section.wrong" :key="item.id">
+                  <div class="wrong-item">
+                    <template x-if="section.type === 'fitb'">
+                      <div>
+                        <strong x-text="'Q' + item.id + ': ' + item.question"></strong>
+                        <template x-for="(p, pi) in item.wrongParts" :key="pi">
+                          <div class="wrong-part">
+                            <span class="wrong-label" x-text="p.label + ':'"></span>
+                            <span class="wrong-yours" x-text="'Yours: ' + (p.yours || '(blank)')"></span>
+                            <span class="wrong-correct" x-text="'Answer: ' + p.answer"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                    <template x-if="section.type === 'tf'">
+                      <div>
+                        <strong x-text="item.statement"></strong>
+                        <div>
+                          <span class="wrong-yours" x-text="'Yours: ' + (item.yours ? 'True' : 'False')"></span>
+                          <span class="wrong-correct" x-text="'Answer: ' + (item.answer ? 'True' : 'False')"></span>
+                        </div>
+                      </div>
+                    </template>
+                    <template x-if="section.type === 'verses'">
+                      <div>
+                        <strong x-text="item.reference"></strong>
+                        <div class="wrong-verse-text" x-text="'Answer: ' + item.text"></div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="section.wrong.length === 0">
+              <p class="all-correct">All correct!</p>
+            </template>
+          </article>
+        </template>
+
+        <!-- Overall -->
+        <article class="overall-score">
+          <h2>Overall: <span x-text="totalEarned + ' / ' + totalPossible"></span></h2>
+          <p x-text="Math.round(totalEarned / totalPossible * 100) + '%'"></p>
+        </article>
+
+        <button @click="screen = 'menu'; resetAll()">Back to Menu</button>
+      </div>
+    </template>
+
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
