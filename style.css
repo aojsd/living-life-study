@@ -227,6 +227,15 @@ progress {
   letter-spacing: 1px;
 }
 
+.hint-tip {
+  font-size: 0.85rem;
+  color: #854d0e;
+  background: #fefce8;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
 textarea {
   font-size: 1rem;
   line-height: 1.6;

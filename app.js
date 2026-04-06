@@ -216,8 +216,8 @@ document.addEventListener('alpine:init', () => {
       const userText = (this.answers[idx] || '').trim();
       const attempts = this.verseAttempts[idx] || 0;
 
-      // If submission is blank and not yet fully hinted, show hints
-      if (userText === '' && attempts < 4) {
+      // If submission is blank, show hints (max 3 rounds = 75% revealed)
+      if (userText === '' && attempts < 3) {
         this.verseAttempts[idx] = attempts + 1;
         this.verseFailed[idx] = true; // any hint = fail
         this.revealHints(idx, q, this.verseAttempts[idx]);
@@ -250,7 +250,9 @@ document.addEventListener('alpine:init', () => {
     revealHints(idx, q, attemptNum) {
       const words = wordsOf(q.text);
       const totalWords = words.length;
-      const revealCount = Math.min(Math.floor(totalWords * 0.25 * attemptNum), totalWords);
+      // Each attempt reveals 25% of total words (at least 1), capped so we never exceed 75%
+      const perStep = Math.max(1, Math.ceil(totalWords * 0.25));
+      const targetRevealed = Math.min(perStep * attemptNum, Math.ceil(totalWords * 0.75));
 
       // Build or update hint array
       let hints = this.verseHints[idx];
@@ -259,11 +261,19 @@ document.addEventListener('alpine:init', () => {
       }
 
       // Pick random unrevealed indices to reveal
+      const alreadyRevealed = hints.filter(h => h.revealed).length;
+      const toRevealCount = targetRevealed - alreadyRevealed;
       const unrevealed = hints.reduce((acc, h, i) => h.revealed ? acc : [...acc, i], []);
-      const toReveal = shuffle(unrevealed).slice(0, revealCount - hints.filter(h => h.revealed).length);
+      const toReveal = shuffle(unrevealed).slice(0, toRevealCount);
       toReveal.forEach(i => hints[i].revealed = true);
 
       this.verseHints[idx] = [...hints]; // trigger reactivity
+    },
+
+    hintsRemaining() {
+      const idx = this.currentIndex;
+      const attempts = this.verseAttempts[idx] || 0;
+      return 3 - attempts;
     },
 
     partFeedbackClass(pi) {

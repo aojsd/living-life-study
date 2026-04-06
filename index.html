@@ -119,6 +119,10 @@
               </div>
             </template>
 
+            <template x-if="!submitted[currentIndex]">
+              <p class="hint-tip" x-text="hintsRemaining() > 0 ? 'Submit blank for a hint (' + hintsRemaining() + ' remaining)' : 'No hints remaining — submit your answer'"></p>
+            </template>
+
             <textarea
               :value="answers[currentIndex] || ''"
               @input="answers[currentIndex] = $event.target.value"
