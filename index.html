@@ -59,17 +59,48 @@
           <article class="question-card">
             <h3 x-text="'Q' + (currentIndex + 1) + '. ' + currentQ().question"></h3>
             <p class="points-label" x-text="currentQ().points + ' points'"></p>
-            <template x-for="(part, pi) in currentQ().parts" :key="pi">
-              <div class="part-row" :class="partFeedbackClass(pi)">
-                <label x-text="part.label"></label>
-                <input type="text"
-                  :value="answers[currentIndex]?.[pi] || ''"
-                  @input="answers[currentIndex] = answers[currentIndex] || []; answers[currentIndex][pi] = $event.target.value"
-                  :disabled="submitted[currentIndex]"
-                  :placeholder="submitted[currentIndex] ? '' : 'Your answer...'"
-                >
-                <template x-if="submitted[currentIndex] && feedback[currentIndex]?.[pi] === false">
-                  <small class="correction" x-text="'Answer: ' + part.answer"></small>
+            <!-- Paired layout (name + range side by side) -->
+            <template x-if="currentQ().paired">
+              <div class="paired-parts">
+                <template x-for="i in Math.ceil(currentQ().parts.length / 2)" :key="i">
+                  <div class="pair-row">
+                    <template x-for="pi in [((i-1)*2), ((i-1)*2+1)]" :key="pi">
+                      <template x-if="currentQ().parts[pi]">
+                        <div class="part-row pair-cell" :class="partFeedbackClass(pi)">
+                          <label x-text="currentQ().parts[pi].label"></label>
+                          <input type="text"
+                            :value="answers[currentIndex]?.[pi] || ''"
+                            @input="answers[currentIndex] = answers[currentIndex] || []; answers[currentIndex][pi] = $event.target.value"
+                            :disabled="submitted[currentIndex]"
+                            :placeholder="submitted[currentIndex] ? '' : 'Your answer...'"
+                          >
+                          <template x-if="submitted[currentIndex] && feedback[currentIndex]?.[pi] === false">
+                            <small class="correction" x-text="'Answer: ' + currentQ().parts[pi].answer"></small>
+                          </template>
+                        </div>
+                      </template>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Standard single-column layout -->
+            <template x-if="!currentQ().paired">
+              <div>
+                <template x-for="(part, pi) in currentQ().parts" :key="pi">
+                  <div class="part-row" :class="partFeedbackClass(pi)">
+                    <label x-text="part.label"></label>
+                    <input type="text"
+                      :value="answers[currentIndex]?.[pi] || ''"
+                      @input="answers[currentIndex] = answers[currentIndex] || []; answers[currentIndex][pi] = $event.target.value"
+                      :disabled="submitted[currentIndex]"
+                      :placeholder="submitted[currentIndex] ? '' : 'Your answer...'"
+                    >
+                    <template x-if="submitted[currentIndex] && feedback[currentIndex]?.[pi] === false">
+                      <small class="correction" x-text="'Answer: ' + part.answer"></small>
+                    </template>
+                  </div>
                 </template>
               </div>
             </template>

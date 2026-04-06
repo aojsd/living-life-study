@@ -38,6 +38,7 @@ const FILL_IN_THE_BLANK = [
     id: 4,
     question: "Write down the four different categories of the books of the Old Testament including where it starts from and ends.",
     points: 8,
+    paired: true,
     parts: [
       { label: "Category 1 — Name", answer: "The Law" },
       { label: "Category 1 — Range", answer: "Genesis to Deuteronomy" },
@@ -53,6 +54,7 @@ const FILL_IN_THE_BLANK = [
     id: 5,
     question: "Write down the four different categories of the books of the New Testament including where it starts from and ends.",
     points: 8,
+    paired: true,
     parts: [
       { label: "Category 1 — Name", answer: "The Gospels" },
       { label: "Category 1 — Range", answer: "Matthew to John" },
