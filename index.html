@@ -42,7 +42,7 @@
 
     <!-- Quiz Screen -->
     <template x-if="screen === 'quiz'">
-      <div class="quiz-screen" @keydown.enter.window="if($event.target.tagName !== 'TEXTAREA' && !(currentSectionType === 'tf' && !submitted[currentIndex])) handleSubmitOrNext()">
+      <div class="quiz-screen" @keydown.enter.window="if(!(currentSectionType === 'tf' && !submitted[currentIndex])) handleSubmitOrNext()">
         <header class="quiz-header">
           <div class="quiz-header-left">
             <span class="section-badge" x-text="currentSectionLabel()"></span>
@@ -129,6 +129,7 @@
               :disabled="submitted[currentIndex]"
               rows="4"
               placeholder="Type the full verse..."
+              @keydown.enter.prevent
             ></textarea>
 
             <!-- Word-by-word feedback after submit -->
