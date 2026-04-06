@@ -264,6 +264,37 @@ progress {
   margin-bottom: 0.5rem;
 }
 
+.hard-status-wrong {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.hard-status-blank {
+  color: #a3a3a3;
+  font-weight: 600;
+}
+
+.hard-duplicate-msg {
+  color: #dc2626;
+  font-style: italic;
+}
+
+.hard-reveal {
+  background: #f0fdf4;
+  border: 1px solid #2ecc71;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+}
+
+.hard-reveal strong {
+  color: var(--pico-primary);
+}
+
+.hard-reveal p {
+  margin: 0.25rem 0 0;
+  line-height: 1.6;
+}
+
 .hard-ref,
 .hard-text {
   padding: 0.75rem;

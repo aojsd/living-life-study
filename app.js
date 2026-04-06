@@ -326,70 +326,92 @@ document.addEventListener('alpine:init', () => {
       return { ref: refCorrect, text: textCorrect, wordFeedback, correctWordCount, maxLen };
     },
 
+    isRowBlank(ua) {
+      return !(ua.ref || '').trim() && !(ua.text || '').trim();
+    },
+
     submitAllVersesHard() {
       const results = Array(12).fill(null);
       let earned = 0;
-      const matched = new Set(); // track which VERSES indices are claimed
+      const claimed = new Set(); // which VERSES indices are claimed
       const wrong = [];
 
-      // For each user row, find the best matching verse (by reference first, then text similarity)
-      const userRows = this.hardAnswers.map((ua, i) => ({ ua, i }));
+      // Separate blank vs non-blank rows
+      const nonBlankRows = [];
+      const blankRows = [];
+      this.hardAnswers.forEach((ua, i) => {
+        if (this.isRowBlank(ua)) blankRows.push(i);
+        else nonBlankRows.push(i);
+      });
 
-      // Pass 1: match rows where reference is correct
-      for (const row of userRows) {
-        let bestIdx = -1;
-        let bestScore = -1;
+      // Pass 1: match non-blank rows by reference to the FIRST unclaimed verse with that reference
+      // This ensures duplicates only claim one verse each
+      for (const ri of nonBlankRows) {
+        const ua = this.hardAnswers[ri];
+        const userRef = normalizeText(ua.ref || '');
+        let matchIdx = -1;
         for (let vi = 0; vi < VERSES.length; vi++) {
-          if (matched.has(vi)) continue;
-          const grade = this.gradeVerseHardRow(row.ua, VERSES[vi]);
-          if (grade.ref) {
-            const score = grade.correctWordCount;
-            if (score > bestScore) {
-              bestScore = score;
-              bestIdx = vi;
-            }
+          if (claimed.has(vi)) continue;
+          if (normalizeText(VERSES[vi].reference) === userRef) {
+            matchIdx = vi;
+            break;
           }
         }
-        if (bestIdx !== -1) {
-          matched.add(bestIdx);
-          const grade = this.gradeVerseHardRow(row.ua, VERSES[bestIdx]);
-          results[row.i] = { ...grade, matchedVerse: VERSES[bestIdx] };
+        if (matchIdx !== -1) {
+          // Reference matched an unclaimed verse — grade text against it
+          claimed.add(matchIdx);
+          const grade = this.gradeVerseHardRow(ua, VERSES[matchIdx]);
+          const pass = grade.ref && grade.text;
+          if (pass) earned++;
+          results[ri] = { ...grade, matchedVerse: VERSES[matchIdx], status: 'graded' };
         }
       }
 
-      // Pass 2: for unmatched rows, match by best text similarity
-      for (const row of userRows) {
-        if (results[row.i]) continue;
+      // Pass 2: non-blank rows with no reference match (wrong ref or duplicate)
+      // Mark as incorrect, show the correct verse they should have written
+      // Match by text similarity to help show the most relevant correction
+      for (const ri of nonBlankRows) {
+        if (results[ri]) continue;
+        const ua = this.hardAnswers[ri];
         let bestIdx = -1;
         let bestScore = -1;
         for (let vi = 0; vi < VERSES.length; vi++) {
-          if (matched.has(vi)) continue;
-          const grade = this.gradeVerseHardRow(row.ua, VERSES[vi]);
-          const score = grade.correctWordCount;
-          if (score > bestScore) {
-            bestScore = score;
+          if (claimed.has(vi)) continue;
+          const grade = this.gradeVerseHardRow(ua, VERSES[vi]);
+          if (grade.correctWordCount > bestScore) {
+            bestScore = grade.correctWordCount;
             bestIdx = vi;
           }
         }
         if (bestIdx !== -1) {
-          matched.add(bestIdx);
-          const grade = this.gradeVerseHardRow(row.ua, VERSES[bestIdx]);
-          results[row.i] = { ...grade, matchedVerse: VERSES[bestIdx] };
+          claimed.add(bestIdx);
+          const grade = this.gradeVerseHardRow(ua, VERSES[bestIdx]);
+          results[ri] = { ...grade, matchedVerse: VERSES[bestIdx], status: 'wrong' };
         } else {
-          // No verses left — grade against first unmatched
-          const remaining = VERSES.find((_, vi) => !matched.has(vi));
-          const grade = this.gradeVerseHardRow(row.ua, remaining || VERSES[0]);
-          results[row.i] = { ...grade, matchedVerse: remaining || VERSES[0] };
+          // All verses claimed — this is a pure duplicate, mark failed with no match
+          results[ri] = { ref: false, text: false, wordFeedback: [], matchedVerse: null, status: 'duplicate' };
         }
       }
 
-      // Tally scores
+      // Pass 3: blank rows — reveal the unclaimed verses, no feedback
+      const unclaimed = VERSES.filter((_, vi) => !claimed.has(vi));
+      let unclaimedIdx = 0;
+      for (const ri of blankRows) {
+        const verse = unclaimed[unclaimedIdx] || null;
+        unclaimedIdx++;
+        results[ri] = { ref: false, text: false, wordFeedback: [], matchedVerse: verse, status: 'blank' };
+      }
+
+      // Build wrong list for results screen
       for (let i = 0; i < 12; i++) {
         const r = results[i];
-        if (r.ref && r.text) {
-          earned++;
-        } else {
-          wrong.push({ id: r.matchedVerse.id, reference: r.matchedVerse.reference, text: r.matchedVerse.text, mode: 'hard' });
+        if (r.status !== 'graded' || !(r.ref && r.text)) {
+          if (r.status === 'graded') {
+            // Ref matched but text wrong
+            wrong.push({ id: r.matchedVerse.id, reference: r.matchedVerse.reference, text: r.matchedVerse.text, mode: 'hard' });
+          } else if (r.matchedVerse) {
+            wrong.push({ id: r.matchedVerse.id, reference: r.matchedVerse.reference, text: r.matchedVerse.text, mode: 'hard' });
+          }
         }
       }
 

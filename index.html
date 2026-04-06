@@ -235,40 +235,71 @@
 
         <template x-for="(v, i) in currentQuestions" :key="i">
           <article class="question-card hard-card">
-            <h4 x-text="'Verse ' + (i + 1) + (hardFeedback && hardFeedback[i].matchedVerse ? ' — matched: ' + hardFeedback[i].matchedVerse.reference : '')"></h4>
-            <div class="hard-verse-row">
-              <div class="hard-ref" :class="hardFeedback ? (hardFeedback[i].ref ? 'part-correct' : 'part-incorrect') : ''">
-                <label>Reference:</label>
-                <input type="text"
-                  :value="hardAnswers[i]?.ref || ''"
-                  @input="hardAnswers[i].ref = $event.target.value"
-                  :disabled="hardSubmitted"
-                  placeholder="e.g. John 3:16"
-                >
-                <template x-if="hardFeedback && !hardFeedback[i].ref">
-                  <small class="correction" x-text="'Answer: ' + hardFeedback[i].matchedVerse.reference"></small>
-                </template>
-              </div>
-              <div class="hard-text" :class="hardFeedback ? (hardFeedback[i].text ? 'part-correct' : 'part-incorrect') : ''">
-                <label>Verse:</label>
-                <textarea
-                  :value="hardAnswers[i]?.text || ''"
-                  @input="hardAnswers[i].text = $event.target.value"
-                  :disabled="hardSubmitted"
-                  rows="3"
-                  placeholder="Type the full verse..."
-                ></textarea>
-                <template x-if="hardFeedback && !hardFeedback[i].text">
-                  <div class="verse-feedback">
-                    <template x-for="(w, wi) in hardFeedback[i].wordFeedback" :key="wi">
-                      <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
-                        x-text="w.correct ? w.word : w.expected"
-                        :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+            <!-- Before submit or graded/wrong rows -->
+            <template x-if="!hardFeedback || hardFeedback[i].status === 'graded' || hardFeedback[i].status === 'wrong'">
+              <div>
+                <h4>
+                  <span x-text="'Verse ' + (i + 1)"></span>
+                  <template x-if="hardFeedback && hardFeedback[i].status === 'wrong'">
+                    <span class="hard-status-wrong"> — Incorrect</span>
+                  </template>
+                </h4>
+                <div class="hard-verse-row">
+                  <div class="hard-ref" :class="hardFeedback ? (hardFeedback[i].ref ? 'part-correct' : 'part-incorrect') : ''">
+                    <label>Reference:</label>
+                    <input type="text"
+                      :value="hardAnswers[i]?.ref || ''"
+                      @input="hardAnswers[i].ref = $event.target.value"
+                      :disabled="hardSubmitted"
+                      placeholder="e.g. John 3:16"
+                    >
+                    <template x-if="hardFeedback && !hardFeedback[i].ref && hardFeedback[i].matchedVerse">
+                      <small class="correction" x-text="'Answer: ' + hardFeedback[i].matchedVerse.reference"></small>
                     </template>
+                  </div>
+                  <div class="hard-text" :class="hardFeedback ? (hardFeedback[i].text ? 'part-correct' : 'part-incorrect') : ''">
+                    <label>Verse:</label>
+                    <textarea
+                      :value="hardAnswers[i]?.text || ''"
+                      @input="hardAnswers[i].text = $event.target.value"
+                      :disabled="hardSubmitted"
+                      rows="3"
+                      placeholder="Type the full verse..."
+                    ></textarea>
+                    <template x-if="hardFeedback && !hardFeedback[i].text && hardFeedback[i].wordFeedback.length > 0">
+                      <div class="verse-feedback">
+                        <template x-for="(w, wi) in hardFeedback[i].wordFeedback" :key="wi">
+                          <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
+                            x-text="w.correct ? w.word : w.expected"
+                            :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Duplicate row -->
+            <template x-if="hardFeedback && hardFeedback[i].status === 'duplicate'">
+              <div>
+                <h4><span x-text="'Verse ' + (i + 1)"></span><span class="hard-status-wrong"> — Duplicate</span></h4>
+                <p class="hard-duplicate-msg">This verse was already submitted in another row.</p>
+              </div>
+            </template>
+
+            <!-- Blank row — just reveal the unattempted verse -->
+            <template x-if="hardFeedback && hardFeedback[i].status === 'blank'">
+              <div>
+                <h4><span x-text="'Verse ' + (i + 1)"></span><span class="hard-status-blank"> — Not attempted</span></h4>
+                <template x-if="hardFeedback[i].matchedVerse">
+                  <div class="hard-reveal">
+                    <strong x-text="hardFeedback[i].matchedVerse.reference"></strong>
+                    <p x-text="hardFeedback[i].matchedVerse.text"></p>
                   </div>
                 </template>
               </div>
-            </div>
+            </template>
           </article>
         </template>
 
