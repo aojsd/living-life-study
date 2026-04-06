@@ -214,56 +214,63 @@
           </article>
         </template>
 
-        <!-- Verses Hard: both reference and text from memory -->
-        <template x-if="currentSectionType === 'verses_hard' && currentQ().mode === 'hard'">
-          <article class="question-card">
-            <h3 x-text="'Verse ' + (currentIndex + 1) + ' of 12'"></h3>
+      </div>
+    </template>
 
+    <!-- Verses Hard Screen -->
+    <template x-if="screen === 'verses_hard'">
+      <div class="quiz-screen">
+        <header class="quiz-header">
+          <div class="quiz-header-left">
+            <span class="section-badge">Verses (Hard)</span>
+            <span class="progress-text">Write all 12 references and verses from memory</span>
+          </div>
+          <button class="outline secondary btn-sm" @click="if(confirm('Quit? Progress will be lost.')) { screen = 'menu'; resetAll(); }">Quit</button>
+        </header>
+
+        <template x-for="(v, i) in currentQuestions" :key="i">
+          <article class="question-card hard-card">
+            <h4 x-text="'Verse ' + (i + 1)"></h4>
             <div class="hard-verse-row">
-              <div class="hard-ref" :class="submitted[currentIndex] ? (feedback[currentIndex]?.ref ? 'part-correct' : 'part-incorrect') : ''">
+              <div class="hard-ref" :class="hardFeedback ? (hardFeedback[i].ref ? 'part-correct' : 'part-incorrect') : ''">
                 <label>Reference:</label>
                 <input type="text"
-                  :value="(answers[currentIndex] || {}).ref || ''"
-                  @input="answers[currentIndex] = { ...answers[currentIndex], ref: $event.target.value }"
-                  :disabled="submitted[currentIndex]"
+                  :value="hardAnswers[i]?.ref || ''"
+                  @input="hardAnswers[i].ref = $event.target.value"
+                  :disabled="hardSubmitted"
                   placeholder="e.g. John 3:16"
                 >
-                <template x-if="submitted[currentIndex] && !feedback[currentIndex]?.ref">
-                  <small class="correction" x-text="'Answer: ' + currentQ().reference"></small>
+                <template x-if="hardFeedback && !hardFeedback[i].ref">
+                  <small class="correction" x-text="'Answer: ' + v.reference"></small>
                 </template>
               </div>
-              <div class="hard-text">
+              <div class="hard-text" :class="hardFeedback ? (hardFeedback[i].text ? 'part-correct' : 'part-incorrect') : ''">
                 <label>Verse:</label>
                 <textarea
-                  :value="(answers[currentIndex] || {}).text || ''"
-                  @input="answers[currentIndex] = { ...answers[currentIndex], text: $event.target.value }"
-                  :disabled="submitted[currentIndex]"
-                  rows="4"
+                  :value="hardAnswers[i]?.text || ''"
+                  @input="hardAnswers[i].text = $event.target.value"
+                  :disabled="hardSubmitted"
+                  rows="3"
                   placeholder="Type the full verse..."
-                  @keydown.enter.prevent
                 ></textarea>
-              </div>
-            </div>
-
-            <!-- Word-by-word feedback after submit -->
-            <template x-if="submitted[currentIndex]">
-              <div class="verse-feedback">
-                <template x-for="(w, wi) in verseFeedback[currentIndex]" :key="wi">
-                  <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
-                    x-text="w.correct ? w.word : w.expected"
-                    :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+                <template x-if="hardFeedback && !hardFeedback[i].text">
+                  <div class="verse-feedback">
+                    <template x-for="(w, wi) in hardFeedback[i].wordFeedback" :key="wi">
+                      <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
+                        x-text="w.correct ? w.word : w.expected"
+                        :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+                    </template>
+                  </div>
                 </template>
               </div>
-            </template>
-
-            <div class="question-actions">
-              <button @click="submitAnswer()" x-show="!submitted[currentIndex]">Submit</button>
-              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
-                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
-              </button>
             </div>
           </article>
         </template>
+
+        <div class="question-actions">
+          <button @click="submitAllVersesHard()" x-show="!hardSubmitted">Submit All</button>
+          <button @click="finishVersesHard()" x-show="hardSubmitted">See Results</button>
+        </div>
       </div>
     </template>
 

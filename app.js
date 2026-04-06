@@ -56,6 +56,11 @@ document.addEventListener('alpine:init', () => {
     verseAttempts: {},    // {idx: number}
     verseFailed: {},      // {idx: bool} — failed due to hint or error
 
+    // Verses hard state
+    hardAnswers: [],
+    hardFeedback: null,
+    hardSubmitted: false,
+
     // Results
     resultSections: [],
     totalEarned: 0,
@@ -78,6 +83,9 @@ document.addEventListener('alpine:init', () => {
       this.verseHints = {};
       this.verseAttempts = {};
       this.verseFailed = {};
+      this.hardAnswers = [];
+      this.hardFeedback = null;
+      this.hardSubmitted = false;
       this.resultSections = [];
       this.allResults = [];
       this.totalEarned = 0;
@@ -123,7 +131,12 @@ document.addEventListener('alpine:init', () => {
         const refQs = shuffle(VERSES.map(v => ({ ...v, mode: 'ref' })));
         this.currentQuestions = [...textQs, ...refQs];
       } else if (sectionType === 'verses_hard') {
-        this.currentQuestions = shuffle(VERSES.map(v => ({ ...v, mode: 'hard' })));
+        this.currentQuestions = VERSES.map(v => ({ ...v, mode: 'hard' }));
+        this.hardAnswers = Array.from({ length: 12 }, () => ({ ref: '', text: '' }));
+        this.hardFeedback = null;
+        this.hardSubmitted = false;
+        this.screen = 'verses_hard';
+        return;
       }
       this.screen = 'quiz';
     },
@@ -290,6 +303,55 @@ document.addEventListener('alpine:init', () => {
       this.feedback[idx] = { ref: refCorrect, text: textCorrect };
       this.scores[idx] = (refCorrect && textCorrect) ? 1 : 0;
       this.submitted[idx] = true;
+    },
+
+    submitAllVersesHard() {
+      const results = [];
+      let earned = 0;
+      const wrong = [];
+
+      VERSES.forEach((v, i) => {
+        const ua = this.hardAnswers[i] || {};
+        const refCorrect = normalizeText(ua.ref || '') === normalizeText(v.reference);
+
+        const userText = (ua.text || '').trim();
+        const expectedWords = wordsOf(v.text);
+        const userWords = wordsOf(userText);
+        const maxLen = Math.max(expectedWords.length, userWords.length);
+        const wordFeedback = [];
+        let textCorrect = true;
+
+        for (let j = 0; j < maxLen; j++) {
+          const expected = expectedWords[j] || '';
+          const got = userWords[j] || '';
+          const correct = normalizeText(got) === normalizeText(expected);
+          if (!correct) textCorrect = false;
+          wordFeedback.push({ word: expected, correct, got, expected });
+        }
+
+        const pass = refCorrect && textCorrect;
+        if (pass) earned++;
+        results.push({ ref: refCorrect, text: textCorrect, wordFeedback });
+        if (!pass) {
+          wrong.push({ id: v.id, reference: v.reference, text: v.text, mode: 'hard' });
+        }
+      });
+
+      this.hardFeedback = results;
+      this.hardSubmitted = true;
+
+      this.allResults.push({
+        type: 'verses_hard',
+        label: 'Verses (Hard)',
+        earned,
+        total: 12,
+        wrong
+      });
+    },
+
+    finishVersesHard() {
+      this.sectionQueue = [];
+      this.showResults();
     },
 
     revealHints(idx, q, attemptNum) {

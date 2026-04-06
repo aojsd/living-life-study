@@ -255,7 +255,17 @@ progress {
   margin-bottom: 1rem;
 }
 
-.hard-ref {
+.hard-card {
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.hard-card h4 {
+  margin-bottom: 0.5rem;
+}
+
+.hard-ref,
+.hard-text {
   padding: 0.75rem;
   border-radius: 6px;
   border: 2px solid transparent;
