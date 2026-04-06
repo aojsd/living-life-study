@@ -26,10 +26,15 @@
             <p>106 statements</p>
             <small>106 points</small>
           </article>
-          <article class="menu-card" @click="startSection('verses')">
-            <h3>Memory Verses</h3>
-            <p>24 questions: type verse from reference, then reference from verse</p>
-            <small>24 points</small>
+          <article class="menu-card" @click="startSection('verses_text')">
+            <h3>Verses</h3>
+            <p>12 verses: type verse from reference</p>
+            <small>12 points</small>
+          </article>
+          <article class="menu-card" @click="startSection('verses_ref')">
+            <h3>References</h3>
+            <p>12 verses: type reference from verse</p>
+            <small>12 points</small>
           </article>
           <article class="menu-card" @click="startSection('verses_hard')">
             <h3>Verses (Hard)</h3>
@@ -141,7 +146,7 @@
         </template>
 
         <!-- Verses: type verse from reference -->
-        <template x-if="(currentSectionType === 'verses' || currentSectionType === 'verses_hard') && currentQ().mode === 'text'">
+        <template x-if="currentSectionType === 'verses_text'">
           <article class="question-card">
             <h3 x-text="'Verse ' + (currentIndex + 1)"></h3>
             <p class="verse-reference" x-text="currentQ().reference"></p>
@@ -189,7 +194,7 @@
         </template>
 
         <!-- Verses: type reference from verse text -->
-        <template x-if="currentSectionType === 'verses' && currentQ().mode === 'ref'">
+        <template x-if="currentSectionType === 'verses_ref'">
           <article class="question-card">
             <h3 x-text="'Verse ' + (currentIndex + 1)"></h3>
             <p class="verse-prompt-text">"<span x-text="currentQ().text"></span>"</p>
@@ -313,7 +318,7 @@
                         </div>
                       </div>
                     </template>
-                    <template x-if="section.type === 'verses' || section.type === 'verses_hard'">
+                    <template x-if="section.type === 'verses_text' || section.type === 'verses_ref' || section.type === 'verses_hard'">
                       <div>
                         <strong x-text="item.reference"></strong>
                         <div class="wrong-verse-text" x-text="'Answer: ' + item.text"></div>
