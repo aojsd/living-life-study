@@ -10,7 +10,7 @@ function shuffle(arr) {
 }
 
 function normalizeText(s) {
-  return s.trim().toLowerCase().replace(/[^\w\s'-]/g, '').replace(/\s+/g, ' ');
+  return s.trim().toLowerCase().replace(/[–—]/g, '-').replace(/[^\w\s'-]/g, '').replace(/\s+/g, ' ');
 }
 
 // Strip leading articles for lenient comparison
