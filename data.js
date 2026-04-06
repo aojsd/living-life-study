@@ -7,7 +7,7 @@ const FILL_IN_THE_BLANK = [
     points: 3,
     parts: [
       { label: "Definition 1", answer: "Lawlessness" },
-      { label: "Definition 2", answer: "Knowing the good we ought to do and are not doing it" },
+      { label: "Definition 2", answer: "Knowing the good we ought to do and not doing it" },
       { label: "Definition 3", answer: "Everything that doesn't come from faith" }
     ]
   },
