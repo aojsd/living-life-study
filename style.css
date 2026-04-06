@@ -262,17 +262,20 @@ textarea {
   word-break: keep-all;
 }
 
-.word-correct {
-  color: #16a34a;
+.word-correct,
+.word-incorrect {
   font-weight: 600;
   margin-right: 0.3rem;
+  display: inline-block;
+}
+
+.word-correct {
+  color: #16a34a;
 }
 
 .word-incorrect {
   color: #dc2626;
-  font-weight: 600;
   text-decoration: underline wavy;
-  margin-right: 0.3rem;
   cursor: help;
 }
 
