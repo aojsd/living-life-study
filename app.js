@@ -204,6 +204,9 @@ document.addEventListener('alpine:init', () => {
         if (part.answer === '__tribe__') {
           return TWELVE_TRIBES.includes(normalizeText(userVal));
         }
+        if (part.altAnswers) {
+          return part.altAnswers.some(alt => lenientMatch(userVal, alt));
+        }
         return lenientMatch(userVal, part.answer);
       });
 

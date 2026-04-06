@@ -60,7 +60,7 @@ const FILL_IN_THE_BLANK = [
       { label: "Category 1 — Range", answer: "Matthew to John" },
       { label: "Category 2 — Name", answer: "History" },
       { label: "Category 2 — Range", answer: "Acts" },
-      { label: "Category 3 — Name", answer: "Letters" },
+      { label: "Category 3 — Name", answer: "Letters/Epistles", altAnswers: ["Letters", "Epistles"] },
       { label: "Category 3 — Range", answer: "Romans to Jude" },
       { label: "Category 4 — Name", answer: "Prophetic book" },
       { label: "Category 4 — Range", answer: "Revelation" }
