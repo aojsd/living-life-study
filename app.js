@@ -118,7 +118,12 @@ document.addEventListener('alpine:init', () => {
       } else if (sectionType === 'tf') {
         this.currentQuestions = shuffle(TRUE_FALSE);
       } else if (sectionType === 'verses') {
-        this.currentQuestions = shuffle(VERSES);
+        // 12 "given reference, type verse" then 12 "given verse, type reference"
+        const textQs = shuffle(VERSES.map(v => ({ ...v, mode: 'text' })));
+        const refQs = shuffle(VERSES.map(v => ({ ...v, mode: 'ref' })));
+        this.currentQuestions = [...textQs, ...refQs];
+      } else if (sectionType === 'verses_hard') {
+        this.currentQuestions = shuffle(VERSES.map(v => ({ ...v, mode: 'hard' })));
       }
       this.screen = 'quiz';
     },
@@ -128,7 +133,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     currentSectionLabel() {
-      const labels = { fitb: 'Fill in the Blank', tf: 'True or False', verses: 'Memory Verses' };
+      const labels = { fitb: 'Fill in the Blank', tf: 'True or False', verses: 'Memory Verses', verses_hard: 'Verses (Hard)' };
       return labels[this.currentSectionType] || '';
     },
 
@@ -153,9 +158,15 @@ document.addEventListener('alpine:init', () => {
         this.submitFITB(idx, q);
       } else if (type === 'tf') {
         this.submitTF(idx, q);
-      } else if (type === 'verses') {
-        this.submitVerse(idx, q);
-        return; // verse submission may not finalize (hints)
+      } else if (type === 'verses' || type === 'verses_hard') {
+        if (q.mode === 'ref') {
+          this.submitVerseRef(idx, q);
+        } else if (q.mode === 'hard') {
+          this.submitVerseHard(idx, q);
+        } else {
+          this.submitVerse(idx, q);
+          return; // verse text submission may not finalize (hints)
+        }
       }
     },
 
@@ -247,6 +258,40 @@ document.addEventListener('alpine:init', () => {
       this.submitted[idx] = true;
     },
 
+    submitVerseRef(idx, q) {
+      const userRef = (this.answers[idx] || '').trim();
+      const correct = normalizeText(userRef) === normalizeText(q.reference);
+      this.feedback[idx] = correct;
+      this.scores[idx] = correct ? 1 : 0;
+      this.submitted[idx] = true;
+    },
+
+    submitVerseHard(idx, q) {
+      const userAnswers = this.answers[idx] || {};
+      const refCorrect = normalizeText(userAnswers.ref || '') === normalizeText(q.reference);
+
+      // Word-by-word comparison for verse text
+      const userText = (userAnswers.text || '').trim();
+      const expectedWords = wordsOf(q.text);
+      const userWords = wordsOf(userText);
+      const maxLen = Math.max(expectedWords.length, userWords.length);
+      const wordFeedback = [];
+      let textCorrect = true;
+
+      for (let i = 0; i < maxLen; i++) {
+        const expected = expectedWords[i] || '';
+        const got = userWords[i] || '';
+        const correct = normalizeText(got) === normalizeText(expected);
+        if (!correct) textCorrect = false;
+        wordFeedback.push({ word: expected, correct, got, expected });
+      }
+
+      this.verseFeedback[idx] = wordFeedback;
+      this.feedback[idx] = { ref: refCorrect, text: textCorrect };
+      this.scores[idx] = (refCorrect && textCorrect) ? 1 : 0;
+      this.submitted[idx] = true;
+    },
+
     revealHints(idx, q, attemptNum) {
       const words = wordsOf(q.text);
       const totalWords = words.length;
@@ -319,17 +364,17 @@ document.addEventListener('alpine:init', () => {
           if (earned === 0) {
             wrong.push({ id: q.id, statement: q.statement, yours: this.answers[idx], answer: q.answer });
           }
-        } else if (type === 'verses') {
+        } else if (type === 'verses' || type === 'verses_hard') {
           totalPossible += 1;
           const earned = this.scores[idx] || 0;
           totalEarned += earned;
           if (earned === 0) {
-            wrong.push({ id: q.id, reference: q.reference, text: q.text });
+            wrong.push({ id: q.id, reference: q.reference, text: q.text, mode: q.mode });
           }
         }
       });
 
-      const labels = { fitb: 'Fill in the Blank', tf: 'True or False', verses: 'Memory Verses' };
+      const labels = { fitb: 'Fill in the Blank', tf: 'True or False', verses: 'Memory Verses', verses_hard: 'Verses (Hard)' };
       this.allResults.push({
         type,
         label: labels[type],

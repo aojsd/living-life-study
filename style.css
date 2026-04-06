@@ -238,6 +238,29 @@ progress {
   letter-spacing: 1px;
 }
 
+/* Verse prompt text (for reference-from-verse mode) */
+.verse-prompt-text {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 1rem;
+  color: var(--pico-color);
+}
+
+/* Hard mode layout */
+.hard-verse-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hard-ref {
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 2px solid transparent;
+}
+
 .hint-tip {
   font-size: 0.85rem;
   color: #854d0e;

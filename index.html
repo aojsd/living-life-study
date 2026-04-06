@@ -28,13 +28,18 @@
           </article>
           <article class="menu-card" @click="startSection('verses')">
             <h3>Memory Verses</h3>
-            <p>12 verses to recall from reference</p>
+            <p>24 questions: type verse from reference, then reference from verse</p>
+            <small>24 points</small>
+          </article>
+          <article class="menu-card" @click="startSection('verses_hard')">
+            <h3>Verses (Hard)</h3>
+            <p>12 verses: recall both reference and text from memory</p>
             <small>12 points</small>
           </article>
           <article class="menu-card menu-card-full" @click="startSection('full')">
             <h3>Full Test</h3>
             <p>All sections in order</p>
-            <small>173 points</small>
+            <small>185 points</small>
           </article>
         </div>
       </div>
@@ -135,8 +140,8 @@
           </article>
         </template>
 
-        <!-- Verses -->
-        <template x-if="currentSectionType === 'verses'">
+        <!-- Verses: type verse from reference -->
+        <template x-if="(currentSectionType === 'verses' || currentSectionType === 'verses_hard') && currentQ().mode === 'text'">
           <article class="question-card">
             <h3 x-text="'Verse ' + (currentIndex + 1)"></h3>
             <p class="verse-reference" x-text="currentQ().reference"></p>
@@ -162,6 +167,83 @@
               placeholder="Type the full verse..."
               @keydown.enter.prevent
             ></textarea>
+
+            <!-- Word-by-word feedback after submit -->
+            <template x-if="submitted[currentIndex]">
+              <div class="verse-feedback">
+                <template x-for="(w, wi) in verseFeedback[currentIndex]" :key="wi">
+                  <span :class="w.correct ? 'word-correct' : 'word-incorrect'"
+                    x-text="w.correct ? w.word : w.expected"
+                    :title="!w.correct && w.got ? ('You wrote: ' + w.got) : ''"></span>
+                </template>
+              </div>
+            </template>
+
+            <div class="question-actions">
+              <button @click="submitAnswer()" x-show="!submitted[currentIndex]">Submit</button>
+              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
+                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
+              </button>
+            </div>
+          </article>
+        </template>
+
+        <!-- Verses: type reference from verse text -->
+        <template x-if="currentSectionType === 'verses' && currentQ().mode === 'ref'">
+          <article class="question-card">
+            <h3 x-text="'Verse ' + (currentIndex + 1)"></h3>
+            <p class="verse-prompt-text">"<span x-text="currentQ().text"></span>"</p>
+            <label>Reference:</label>
+            <input type="text"
+              :value="answers[currentIndex] || ''"
+              @input="answers[currentIndex] = $event.target.value"
+              :disabled="submitted[currentIndex]"
+              placeholder="e.g. John 3:16"
+            >
+            <template x-if="submitted[currentIndex]">
+              <div class="tf-result" :class="feedback[currentIndex] ? 'correct' : 'incorrect'">
+                <span x-text="feedback[currentIndex] ? 'Correct!' : 'Incorrect — Answer: ' + currentQ().reference"></span>
+              </div>
+            </template>
+            <div class="question-actions">
+              <button @click="submitAnswer()" x-show="!submitted[currentIndex]">Submit</button>
+              <button @click="nextQuestion()" x-show="submitted[currentIndex]">
+                <span x-text="isLastQuestion() ? 'Finish Section' : 'Next'"></span>
+              </button>
+            </div>
+          </article>
+        </template>
+
+        <!-- Verses Hard: both reference and text from memory -->
+        <template x-if="currentSectionType === 'verses_hard' && currentQ().mode === 'hard'">
+          <article class="question-card">
+            <h3 x-text="'Verse ' + (currentIndex + 1) + ' of 12'"></h3>
+
+            <div class="hard-verse-row">
+              <div class="hard-ref" :class="submitted[currentIndex] ? (feedback[currentIndex]?.ref ? 'part-correct' : 'part-incorrect') : ''">
+                <label>Reference:</label>
+                <input type="text"
+                  :value="(answers[currentIndex] || {}).ref || ''"
+                  @input="answers[currentIndex] = { ...answers[currentIndex], ref: $event.target.value }"
+                  :disabled="submitted[currentIndex]"
+                  placeholder="e.g. John 3:16"
+                >
+                <template x-if="submitted[currentIndex] && !feedback[currentIndex]?.ref">
+                  <small class="correction" x-text="'Answer: ' + currentQ().reference"></small>
+                </template>
+              </div>
+              <div class="hard-text">
+                <label>Verse:</label>
+                <textarea
+                  :value="(answers[currentIndex] || {}).text || ''"
+                  @input="answers[currentIndex] = { ...answers[currentIndex], text: $event.target.value }"
+                  :disabled="submitted[currentIndex]"
+                  rows="4"
+                  placeholder="Type the full verse..."
+                  @keydown.enter.prevent
+                ></textarea>
+              </div>
+            </div>
 
             <!-- Word-by-word feedback after submit -->
             <template x-if="submitted[currentIndex]">
@@ -224,7 +306,7 @@
                         </div>
                       </div>
                     </template>
-                    <template x-if="section.type === 'verses'">
+                    <template x-if="section.type === 'verses' || section.type === 'verses_hard'">
                       <div>
                         <strong x-text="item.reference"></strong>
                         <div class="wrong-verse-text" x-text="'Answer: ' + item.text"></div>
